@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 
-import { createProject, updateProject } from "../services/projectService";
+import {
+  createProject,
+  fetchManagers,
+  updateProject,
+} from "../services/projectService";
 import { useAuth } from "../context/AuthContext";
 
 function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
+    manager_id: "",
     description: "",
     priority: "Medium",
     status: "Planning",
@@ -14,11 +19,29 @@ function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [managers, setManagers] = useState([]);
 
+  useEffect(() => {
+    if (user?.role !== "admin") {
+      return;
+    }
+
+    async function loadManagers() {
+      try {
+        const data = await fetchManagers(token);
+        setManagers(data);
+      } catch (error) {
+        setError("Failed to load managers");
+      }
+    }
+
+    loadManagers();
+  }, [token, user]);
   useEffect(() => {
     if (editingProject) {
       setFormData({
         name: editingProject.name || "",
+        manager_id: editingProject.manager_id || "",
         description: editingProject.description || "",
         priority: editingProject.priority || "Medium",
         status: editingProject.status || "Planning",
@@ -26,6 +49,7 @@ function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
     } else {
       setFormData({
         name: "",
+        manager_id: "",
         description: "",
         priority: "Medium",
         status: "Planning",
@@ -72,6 +96,7 @@ function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
         // Clear form immediately after successful creation
         setFormData({
           name: "",
+          manager_id: "",
           description: "",
           priority: "Medium",
           status: "Planning",
@@ -119,6 +144,31 @@ function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
               placeholder="e.g. Website redesign"
             />
           </div>
+
+          {user?.role === "admin" && (
+            <div className="form-group">
+              <label htmlFor="manager_id">Project Manager</label>
+
+              <select
+                id="manager_id"
+                name="manager_id"
+                value={formData.manager_id || ""}
+                onChange={handleChange}
+              >
+                <option value="">Select a manager</option>
+
+                {managers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.username}
+                  </option>
+                ))}
+              </select>
+
+              <small className="form-help">
+                Select the manager responsible for this project.
+              </small>
+            </div>
+          )}
 
           <div className="form-group full-width">
             <label>Description</label>

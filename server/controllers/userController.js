@@ -2,7 +2,13 @@ const { User } = require("../models");
 
 async function getUsers(req, res) {
   try {
+    const { role } = req.query;
+    const where = {};
+    if (role) {
+      where.role = role;
+    }
     const users = await User.findAll({
+      where,
       attributes: ["id", "username", "email", "role"],
     });
 

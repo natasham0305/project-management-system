@@ -133,6 +133,12 @@ export async function updateUserRole(userId, role, token) {
   );
 }
 
+//MANAGER
+
+export async function fetchManagers(token) {
+  return apiFetch(`/users/?role=manager`, {}, token);
+}
+
 // export async function getProjectById(id) {
 //   const response = await fetch(
 //     `${import.meta.env.VITE_API_URL}/projects/${id}`,
