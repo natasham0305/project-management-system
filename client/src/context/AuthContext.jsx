@@ -1,0 +1,89 @@
+import { createContext, useContext, useState } from "react";
+
+const AuthContext = createContext(null);
+
+function getStoredUser() {
+  const storedUser = sessionStorage.getItem("user");
+
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(storedUser);
+  } catch (error) {
+    console.error("Failed to parse stored user:", error);
+    sessionStorage.removeItem("user");
+    return null;
+  }
+}
+
+function getStoredToken() {
+  return sessionStorage.getItem("token");
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(getStoredUser);
+  const [token, setToken] = useState(getStoredToken);
+
+  async function login(email, password) {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Login failed");
+    }
+
+    // Save session
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("user", JSON.stringify(data.user));
+
+    // Update React state
+    setToken(data.token);
+    setUser(data.user);
+
+    return data;
+  }
+
+  function logout() {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+
+    setToken(null);
+    setUser(null);
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: !!token,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+
+  return context;
+}
