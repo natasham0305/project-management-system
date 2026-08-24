@@ -41,3 +41,14 @@ dist-ssr/
 *.njsproj
 *.sln
 *.sw?
+
+
+# Unused Vite starter files
+client/public/
+client/src/assets/
+client/src/components/Card.jsx
+client/src/components/box.css
+client/src/components/box.jsx
+client/src/components/button.jsx
+client/src/components/counter.css
+client/src/components/counter.jsx
