@@ -8,8 +8,15 @@ const {
   deleteProject,
 } = require("../controllers/projectController");
 
+const {
+  getProjectMessages,
+  createProjectMessage,
+  deleteProjectMessage,
+} = require("../controllers/projectMessageController");
+
 const authenticateToken = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/authorizeRole");
+const upload = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -36,6 +43,23 @@ router.delete(
   authenticateToken,
   authorizeRoles("admin"),
   deleteProject,
+);
+
+//PROJECT MESSAGE ROUTES
+
+router.get("/:projectId/messages", authenticateToken, getProjectMessages);
+
+router.post(
+  "/:projectId/messages",
+  authenticateToken,
+  upload.single("file"),
+  createProjectMessage,
+);
+
+router.delete(
+  "/:projectId/messages/:messageId",
+  authenticateToken,
+  deleteProjectMessage,
 );
 
 module.exports = router;

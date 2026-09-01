@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import socket from "../services/socket";
+const API_URL = import.meta.env.VITE_API_URL;
 
 import {
   getProjectById,
@@ -10,6 +12,9 @@ import {
   addProjectMember,
   removeProjectMember,
   fetchUsers,
+  sendProjectMessage,
+  fetchProjectMessages,
+  deleteProjectMessage,
 } from "../services/projectService";
 
 import CreateTask from "../components/CreateTask";
@@ -39,10 +44,159 @@ function ProjectDetails() {
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
 
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesError, setMessagesError] = useState("");
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
+  const messagesEndRef = useRef(null);
+  const chatMessagesRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
+
+  const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const [unreadCount, setUnreadCount] = useState(0);
+  const chatOpenRef = useRef(chatOpen);
+  const receivedMessageIdsRef = useRef(new Set());
+
   const isAdmin = user?.role === "admin";
   const isManager = user?.role === "manager";
   const isMember = user?.role === "member";
   const isViewer = user?.role === "viewer";
+  useLayoutEffect(() => {
+    if (!chatOpen || messagesLoading) {
+      return;
+    }
+
+    const container = chatMessagesRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    container.scrollTop = container.scrollHeight;
+    shouldAutoScrollRef.current = true;
+  }, [chatOpen, messagesLoading]);
+
+  //newly added message
+  useEffect(() => {
+    if (!chatOpen) {
+      return;
+    }
+
+    const container = chatMessagesRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    const isNearBottom = distanceFromBottom < 100;
+
+    if (isNearBottom) {
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+  }, [messages]);
+
+  // useEffect(() => {
+  //   if (!chatOpen || messagesLoading) {
+  //     return;
+  //   }
+
+  //   const container = chatMessagesRef.current;
+
+  //   if (!container) {
+  //     return;
+  //   }
+
+  //   if (shouldAutoScrollRef.current) {
+  //     container.scrollTo({
+  //       top: container.scrollHeight,
+  //       behavior: "smooth",
+  //     });
+  //   }
+  // }, [messages]);
+
+  // //to always start with new message
+  // useEffect(() => {
+  //   if (!chatOpen) {
+  //     shouldAutoScrollRef.current = true;
+  //   }
+  // }, [chatOpen]);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    socket.connect();
+
+    socket.emit("joinProject", id);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id]);
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    function handleNewMessage(message) {
+      // Prevent processing the same socket message more than once
+      if (receivedMessageIdsRef.current.has(message.id)) {
+        return;
+      }
+
+      receivedMessageIdsRef.current.add(message.id);
+
+      if (!chatOpenRef.current) {
+        setUnreadCount((currentCount) => currentCount + 1);
+      }
+
+      setMessages((currentMessages) => {
+        const alreadyExists = currentMessages.some(
+          (currentMessage) => currentMessage.id === message.id,
+        );
+
+        if (alreadyExists) {
+          return currentMessages;
+        }
+
+        return [...currentMessages, message];
+      });
+    }
+
+    socket.on("newProjectMessage", handleNewMessage);
+
+    return () => {
+      socket.off("newProjectMessage", handleNewMessage);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+
+    if (chatOpen) {
+      setUnreadCount(0);
+    }
+  }, [chatOpen]);
+
+  useEffect(() => {
+    if (!chatOpen) {
+      return;
+    }
+
+    shouldAutoScrollRef.current = true;
+  }, [chatOpen]);
 
   useEffect(() => {
     if (!token) {
@@ -76,16 +230,17 @@ function ProjectDetails() {
         setMembersLoading(false);
       }
 
-      try {
-        const usersData = await fetchUsers(token);
-        setAllUsers(usersData);
-      } catch (error) {
-        console.error("Failed to load users:", error);
+      if (isAdmin || isManager) {
+        try {
+          const usersData = await fetchUsers(token);
+          setAllUsers(usersData);
+        } catch (error) {
+          console.error("Failed to load users:", error);
+        }
       }
 
       try {
         const taskData = await fetchTasks(id, token);
-        console.log("TASK DATA:", taskData);
         setTasks(taskData);
       } catch (error) {
         console.error("Failed to load tasks:", error);
@@ -97,6 +252,45 @@ function ProjectDetails() {
 
     loadProject();
   }, [id, token]);
+
+  useEffect(() => {
+    if (!token || !id || !chatOpen) {
+      return;
+    }
+
+    async function loadMessages() {
+      setMessagesLoading(true);
+      setMessagesError("");
+
+      try {
+        const messageData = await fetchProjectMessages(id, token);
+        messageData.forEach((message) => {
+          receivedMessageIdsRef.current.add(message.id);
+        });
+        setMessages(messageData);
+      } catch (error) {
+        console.error("Failed to load project messages:", error);
+        setMessagesError(error.message || "Failed to load project messages");
+      } finally {
+        setMessagesLoading(false);
+      }
+    }
+
+    loadMessages();
+  }, [id, token, chatOpen]);
+
+  function handleChatScroll() {
+    const container = chatMessagesRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    shouldAutoScrollRef.current = distanceFromBottom < 100;
+  }
 
   function handleTaskCreated(newTask) {
     setTasks((currentTasks) => [...currentTasks, newTask]);
@@ -178,6 +372,49 @@ function ProjectDetails() {
       );
     } catch (error) {
       console.error("Failed to remove member:", error);
+    }
+  }
+
+  async function handleSendMessage(event) {
+    event.preventDefault();
+
+    const trimmedMessage = newMessage.trim();
+
+    if (!trimmedMessage && !selectedFile) {
+      return;
+    }
+
+    setSendingMessage(true);
+    setMessagesError("");
+
+    try {
+      await sendProjectMessage(id, trimmedMessage, selectedFile, token);
+
+      setNewMessage("");
+      setSelectedFile(null);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      setMessagesError(error.message || "Failed to send message");
+    } finally {
+      setSendingMessage(false);
+    }
+  }
+  async function handleDeleteMessage(messageId) {
+    try {
+      await deleteProjectMessage(id, messageId, token);
+
+      setMessages((currentMessages) =>
+        currentMessages.filter((message) => message.id !== messageId),
+      );
+
+      setSelectedMessage(null);
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      setMessagesError(error.message || "Failed to delete message");
     }
   }
 
@@ -615,6 +852,319 @@ function ProjectDetails() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+      {/* Project Chat */}
+      <div className={`project-chat-drawer ${chatOpen ? "open" : ""}`}>
+        {/* Collapsed / toggle bar */}
+        <button
+          type="button"
+          className="project-chat-toggle"
+          onClick={() => setChatOpen((current) => !current)}
+        >
+          <div className="project-chat-toggle-left">
+            <span className="project-chat-toggle-info">
+              <strong>Project Chat</strong>
+
+              <span>
+                {unreadCount > 0
+                  ? `${unreadCount} new ${
+                      unreadCount === 1 ? "message" : "messages"
+                    }`
+                  : `${messages.length} ${
+                      messages.length === 1 ? "message" : "messages"
+                    }`}
+              </span>
+            </span>
+          </div>
+
+          <span className="project-chat-toggle-arrow">
+            {chatOpen ? "⌄" : "⌃"}
+          </span>
+        </button>
+
+        {/* Expanded chat window */}
+        {chatOpen && (
+          <div className="project-chat-window">
+            {/* Header */}
+            <div className="project-chat-window-header">
+              <div className="project-chat-project-info">
+                <div className="project-chat-project-avatar">
+                  {project.name?.charAt(0).toUpperCase()}
+                </div>
+
+                <div>
+                  <h3>{project.name}</h3>
+                  <span>
+                    {members.length}{" "}
+                    {members.length === 1 ? "member" : "members"}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="project-chat-close"
+                onClick={() => setChatOpen(false)}
+                aria-label="Close chat"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Conversation */}
+            <div
+              className="project-chat-messages"
+              ref={chatMessagesRef}
+              onScroll={handleChatScroll}
+            >
+              {messagesLoading ? (
+                <div className="project-chat-state">
+                  <div className="spinner"></div>
+                  <p>Loading conversation...</p>
+                </div>
+              ) : messagesError ? (
+                <div className="project-chat-state chat-error">
+                  <p>{messagesError}</p>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="project-chat-state">
+                  <div className="project-chat-empty-icon">💬</div>
+
+                  <h4>No messages yet</h4>
+
+                  <p>Start the conversation with your project team.</p>
+                </div>
+              ) : (
+                messages.map((message) => {
+                  const isOwnMessage =
+                    Number(message.sender_id) === Number(user?.id);
+
+                  const senderName = message.sender?.username || "Unknown user";
+
+                  const senderRole = message.sender?.role || "";
+
+                  const initials = senderName.charAt(0).toUpperCase();
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={`project-message ${
+                        isOwnMessage ? "project-message-own" : ""
+                      }`}
+                    >
+                      {!isOwnMessage && (
+                        <div className="project-message-avatar">{initials}</div>
+                      )}
+                      <div className="project-message-body">
+                        {/* Sender line */}
+                        <div className="project-message-meta">
+                          <div className="project-message-sender">
+                            <strong>{isOwnMessage ? "You" : senderName}</strong>
+
+                            {!isOwnMessage && <span>{senderRole}</span>}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="project-message-menu"
+                            onClick={() =>
+                              setSelectedMessage(
+                                selectedMessage === message.id
+                                  ? null
+                                  : message.id,
+                              )
+                            }
+                          >
+                            ⋮
+                          </button>
+                        </div>
+
+                        {/* Message menu */}
+                        {selectedMessage === message.id && (
+                          <div className="project-message-actions">
+                            <button type="button">Reply</button>
+
+                            {(isOwnMessage || isAdmin) && (
+                              <button
+                                type="button"
+                                className="delete-message-action"
+                                onClick={() => handleDeleteMessage(message.id)}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Message bubble */}
+                        <div className="project-message-bubble">
+                          {message.message && (
+                            <div className="project-message-text">
+                              {message.message}
+                            </div>
+                          )}
+
+                          {message.attachments?.length > 0 && (
+                            <div className="project-message-attachments">
+                              {message.attachments.map((attachment) => {
+                                const fileUrl = `${import.meta.env.VITE_API_URL}${attachment.file_url}`;
+
+                                const isImage =
+                                  attachment.file_type.startsWith("image/");
+
+                                const fileSizeKB =
+                                  attachment.file_size >= 1024
+                                    ? `${(attachment.file_size / 1024).toFixed(1)} KB`
+                                    : `${attachment.file_size} B`;
+
+                                return (
+                                  <div
+                                    key={attachment.id}
+                                    className="chat-attachment"
+                                  >
+                                    {isImage ? (
+                                      <a
+                                        href={fileUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="chat-image-link"
+                                      >
+                                        <img
+                                          src={fileUrl}
+                                          alt={attachment.file_name}
+                                          className="chat-image-preview"
+                                        />
+                                      </a>
+                                    ) : (
+                                      <a
+                                        href={fileUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="chat-file-card"
+                                      >
+                                        <div className="chat-file-icon">📄</div>
+
+                                        <div className="chat-file-info">
+                                          <strong>
+                                            {attachment.file_name}
+                                          </strong>
+
+                                          <span>{fileSizeKB}</span>
+                                        </div>
+                                      </a>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Time */}
+                        <div className="project-message-time">
+                          {message.created_at
+                            ? new Date(message.created_at).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                },
+                              )
+                            : ""}
+                        </div>
+                      </div>
+                      {isOwnMessage && (
+                        <div className="project-message-avatar own">
+                          {user?.username?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Composer */}
+            {!isViewer ? (
+              <form
+                className="project-chat-composer"
+                onSubmit={handleSendMessage}
+              >
+                {/* Selected file preview */}
+                {selectedFile && (
+                  <div className="selected-file">
+                    <span>📎</span>
+
+                    <span className="selected-file-name">
+                      {selectedFile.name}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                {/* Input row */}
+                <div className="chat-input-row">
+                  <button
+                    type="button"
+                    className="project-chat-attach"
+                    title="Attach file"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    📎
+                  </button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    hidden
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+
+                      if (file) {
+                        setSelectedFile(file);
+                      }
+                    }}
+                  />
+
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(event) => setNewMessage(event.target.value)}
+                    placeholder="Write a message..."
+                    disabled={sendingMessage}
+                  />
+
+                  <button
+                    type="submit"
+                    className="project-chat-send"
+                    disabled={
+                      sendingMessage || (!newMessage.trim() && !selectedFile)
+                    }
+                  >
+                    {sendingMessage ? "..." : "Send"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="project-chat-readonly">
+                You can read this conversation, but you cannot send messages.
+              </div>
+            )}
           </div>
         )}
       </div>
