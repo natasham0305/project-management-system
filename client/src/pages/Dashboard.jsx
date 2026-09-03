@@ -1,5 +1,3 @@
-import Card from "../components/Card";
-
 function Dashboard() {
   const statistics = [
     {
