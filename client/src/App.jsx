@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Users from "./pages/Users";
 
 import "./App.css";
+import Register from "./pages/Register";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Protected application */}
         <Route element={<ProtectedRoute />}>

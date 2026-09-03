@@ -24,6 +24,12 @@ module.exports = (sequelize, DataTypes) => {
         otherKey: "user_id",
         as: "members",
       });
+
+      Project.hasMany(models.ProjectMessage, {
+        foreignKey: "project_id",
+        as: "messages",
+        onDelete: "CASCADE",
+      });
     }
   }
   Project.init(

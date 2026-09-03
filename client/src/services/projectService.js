@@ -76,6 +76,47 @@ export async function removeProjectMember(projectId, userId, token) {
     token,
   );
 }
+
+export async function fetchProjectMessages(projectId, token) {
+  return apiFetch(
+    `/projects/${projectId}/messages`,
+    {
+      method: "GET",
+    },
+    token,
+  );
+}
+
+export async function sendProjectMessage(projectId, message, file, token) {
+  const formData = new FormData();
+
+  if (message?.trim()) {
+    formData.append("message", message.trim());
+  }
+
+  if (file) {
+    formData.append("file", file);
+  }
+
+  return apiFetch(
+    `/projects/${projectId}/messages`,
+    {
+      method: "POST",
+      body: formData,
+    },
+    token,
+  );
+}
+
+export async function deleteProjectMessage(projectId, messageId, token) {
+  return apiFetch(
+    `/projects/${projectId}/messages/${messageId}`,
+    {
+      method: "DELETE",
+    },
+    token,
+  );
+}
 // TASKS
 
 export async function fetchTasks(projectId, token) {

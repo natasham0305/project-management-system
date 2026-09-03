@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { fetchUsers, updateUserRole } from "../services/projectService";
 
 function Users() {
@@ -16,7 +16,7 @@ function Users() {
       try {
         const usersData = await fetchUsers(token);
         setUsers(usersData);
-      } catch (error) {
+      } catch {
         setError("Failed to load users");
       } finally {
         setLoading(false);
@@ -36,7 +36,7 @@ function Users() {
             : currentUser,
         ),
       );
-    } catch (error) {
+    } catch {
       setError("Failed to update user role");
     }
   }

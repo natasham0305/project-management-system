@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import {
   createTask,
   fetchProjectMembers,
-  fetchUsers,
   updateTask,
 } from "../services/projectService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function CreateTask({
   projectId,

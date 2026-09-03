@@ -5,7 +5,7 @@ import {
   fetchManagers,
   updateProject,
 } from "../services/projectService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
   const { token, user } = useAuth();
@@ -30,7 +30,7 @@ function CreateProject({ onProjectSaved, editingProject, onCancelEdit }) {
       try {
         const data = await fetchManagers(token);
         setManagers(data);
-      } catch (error) {
+      } catch {
         setError("Failed to load managers");
       }
     }

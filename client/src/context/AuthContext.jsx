@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from "react";
-
-const AuthContext = createContext(null);
+import { useState } from "react";
+import { AuthContext } from "./AuthContext.js";
 
 function getStoredUser() {
   const storedUser = sessionStorage.getItem("user");
@@ -55,6 +54,32 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function register({ username, email, password, confirmPassword }) {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/auth/register`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          confirmPassword,
+        }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Registration failed");
+    }
+
+    return data;
+  }
+
   function logout() {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
@@ -70,20 +95,11 @@ export function AuthProvider({ children }) {
         token,
         isAuthenticated: !!token,
         login,
+        register,
         logout,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
-
-  return context;
 }

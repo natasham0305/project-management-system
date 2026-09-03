@@ -4,7 +4,7 @@ import ProjectCard from "../components/ProjectCard";
 import CreateProject from "../components/CreateProject";
 
 import { deleteProject, fetchProjects } from "../services/projectService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function Projects() {
   const { token } = useAuth();
@@ -20,7 +20,7 @@ function Projects() {
         const data = await fetchProjects(token);
 
         setProjects(data);
-      } catch (error) {
+      } catch {
         setError("Failed to load projects");
       } finally {
         setLoading(false);
@@ -28,7 +28,7 @@ function Projects() {
     }
 
     loadProjects();
-  }, []);
+  }, [token]);
 
   function handleProjectSaved(project) {
     setProjects((currentProjects) => {
