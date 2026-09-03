@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import socket from "../services/socket";
-const API_URL = import.meta.env.VITE_API_URL;
-
 import {
   getProjectById,
   fetchTasks,
@@ -18,7 +16,7 @@ import {
 } from "../services/projectService";
 
 import CreateTask from "../components/CreateTask";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function ProjectDetails() {
   const { token, user } = useAuth();
@@ -104,7 +102,7 @@ function ProjectDetails() {
         container.scrollTop = container.scrollHeight;
       });
     }
-  }, [messages]);
+  }, [messages, chatOpen]);
 
   // useEffect(() => {
   //   if (!chatOpen || messagesLoading) {
@@ -251,7 +249,7 @@ function ProjectDetails() {
     }
 
     loadProject();
-  }, [id, token]);
+  }, [id, token, isAdmin, isManager]);
 
   useEffect(() => {
     if (!token || !id || !chatOpen) {

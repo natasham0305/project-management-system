@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from "react";
-
-const AuthContext = createContext(null);
+import { useState } from "react";
+import { AuthContext } from "./AuthContext.js";
 
 function getStoredUser() {
   const storedUser = sessionStorage.getItem("user");
@@ -103,14 +102,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
-
-  return context;
 }
