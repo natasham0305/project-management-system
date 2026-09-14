@@ -209,43 +209,96 @@ function ProjectDetails() {
       setError("");
       setTasksError("");
 
-      try {
-        const projectData = await getProjectById(id, token);
-        setProject(projectData);
-      } catch (error) {
-        console.error("Failed to load project:", error);
-        setError(error.message || "Failed to load project");
-      } finally {
-        setLoading(false);
-      }
+      const projectPromise = getProjectById(id, token)
+        .then((projectData) => {
+          setProject(projectData);
+        })
+        .catch((error) => {
+          console.error("Failed to load project:", error);
+          setError(error.message || "Failed to load project");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
 
-      try {
-        const memberData = await fetchProjectMembers(id, token);
-        setMembers(memberData);
-      } catch (error) {
-        console.error("Failed to load project members:", error);
-      } finally {
-        setMembersLoading(false);
-      }
+      // try {
+      //   const projectData = await getProjectById(id, token);
+      //   setProject(projectData);
+      // } catch (error) {
+      //   console.error("Failed to load project:", error);
+      //   setError(error.message || "Failed to load project");
+      // } finally {
+      //   setLoading(false);
+      // }
 
-      if (isAdmin || isManager) {
-        try {
-          const usersData = await fetchUsers(token);
-          setAllUsers(usersData);
-        } catch (error) {
-          console.error("Failed to load users:", error);
-        }
-      }
+      const membersPromise = fetchProjectMembers(id, token)
+        .then((memberData) => {
+          setMembers(memberData);
+        })
+        .catch((error) => {
+          console.error("Failed to load project members:", error);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
 
-      try {
-        const taskData = await fetchTasks(id, token);
-        setTasks(taskData);
-      } catch (error) {
-        console.error("Failed to load tasks:", error);
-        setTasksError(error.message || "Failed to load tasks");
-      } finally {
-        setTasksLoading(false);
-      }
+      // try {
+      //   const memberData = await fetchProjectMembers(id, token);
+      //   setMembers(memberData);
+      // } catch (error) {
+      //   console.error("Failed to load project members:", error);
+      // } finally {
+      //   setMembersLoading(false);
+      // }
+
+      const tasksPromise = fetchTasks(id, token)
+        .then((taskData) => {
+          setTasks(taskData);
+        })
+        .catch((error) => {
+          console.error("Failed to load tasks:", error);
+          setTasksError(error.message || "Failed to load tasks");
+        })
+        .finally(() => {
+          setTasksLoading(false);
+        });
+
+      // if (isAdmin || isManager) {
+      //   try {
+      //     const usersData = await fetchUsers(token);
+      //     setAllUsers(usersData);
+      //   } catch (error) {
+      //     console.error("Failed to load users:", error);
+      //   }
+      // }
+
+      const usersPromise =
+        isAdmin || isManager
+          ? fetchUsers(token)
+              .then((usersData) => {
+                setAllUsers(usersData);
+              })
+              .catch((error) => {
+                console.error("Failed to load users:", error);
+              })
+          : Promise.resolve();
+
+      // try {
+      //   const taskData = await fetchTasks(id, token);
+      //   setTasks(taskData);
+      // } catch (error) {
+      //   console.error("Failed to load tasks:", error);
+      //   setTasksError(error.message || "Failed to load tasks");
+      // } finally {
+      //   setTasksLoading(false);
+      // }
+
+      await Promise.all([
+        projectPromise,
+        membersPromise,
+        tasksPromise,
+        usersPromise,
+      ]);
     }
 
     loadProject();

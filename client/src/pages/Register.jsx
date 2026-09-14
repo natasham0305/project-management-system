@@ -99,7 +99,7 @@ function Register() {
       setSuccess("Account created successfully. Redirecting to login...");
 
       setTimeout(() => {
-        navigate("/login");
+        navigate("/login", { state: { prefilledEmail: formData.email } });
       }, 1200);
     } catch (error) {
       setError(error.message || "Unable to create account");

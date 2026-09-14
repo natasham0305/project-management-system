@@ -9,8 +9,11 @@ function Login() {
 
   const { login } = useAuth();
 
+  // FIX: Capture prefilled email passed from Register screen
+  const prefilledEmail = location.state?.prefilledEmail || "";
+
   const [formData, setFormData] = useState({
-    email: "",
+    email: prefilledEmail, // FIX: Initialize state with the prefilled email
     password: "",
   });
 

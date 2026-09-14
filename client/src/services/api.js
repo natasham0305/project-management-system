@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export async function apiFetch(endpoint, options = {}, token = null) {
   const headers = {
-    ...(options.headers || {}),
+    ...options.headers,
   };
 
   // Only set JSON Content-Type when the body is NOT FormData
