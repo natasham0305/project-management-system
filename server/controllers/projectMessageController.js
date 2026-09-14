@@ -1,9 +1,13 @@
+const fs = require("fs/promises");
+const path = require("path");
+
 const {
   Project,
   User,
   ProjectMessage,
   MessageAttachment,
 } = require("../models");
+
 async function getProjectMessages(req, res) {
   try {
     const { projectId } = req.params;
@@ -166,7 +170,14 @@ async function deleteProjectMessage(req, res) {
         id: messageId,
         project_id: projectId,
       },
+      include: [
+        {
+          model: MessageAttachment,
+          as: "attachments",
+        },
+      ],
     });
+
     if (!message) {
       return res.status(404).json({
         message: "Message not found",
@@ -183,6 +194,28 @@ async function deleteProjectMessage(req, res) {
       });
     }
 
+    // Delete physical attachment files
+    for (const attachments of message.attachments || []) {
+      const filename = path.basename(attachments.file_url);
+      const filePath = path.join(__dirname, "../uploads/chat", filename);
+
+      try {
+        await fs.unlink(filePath);
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          console.error("Failed to delete attachment file:", error);
+        }
+      }
+    }
+
+    // delete the record from the database
+    await MessageAttachment.destroy({
+      where: {
+        message_id: messageId,
+      },
+    });
+
+    //  delete the actuall message
     await message.destroy();
 
     return res.status(200).json({
@@ -196,8 +229,98 @@ async function deleteProjectMessage(req, res) {
     });
   }
 }
+
+async function downloadProjectAttachment(req, res) {
+  try {
+    const { projectId, attachmentId } = req.params;
+
+    // Find the project and its members
+    const project = await Project.findByPk(projectId, {
+      include: [
+        {
+          model: User,
+          as: "members",
+          attributes: ["id"],
+        },
+      ],
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    // Check project access
+    const isManager = Number(project.manager_id) === Number(req.user.id);
+
+    const isMember = project.members.some(
+      (member) => Number(member.id) === Number(req.user.id),
+    );
+
+    const isAdmin = req.user.role === "admin";
+
+    if (!isAdmin && !isManager && !isMember) {
+      return res.status(403).json({
+        message: "You cannot access this attachment",
+      });
+    }
+
+    // Find attachment and its related message
+    const attachment = await MessageAttachment.findByPk(attachmentId, {
+      include: [
+        {
+          model: ProjectMessage,
+          as: "message",
+          attributes: ["id", "project_id"],
+        },
+      ],
+    });
+
+    if (!attachment) {
+      return res.status(404).json({
+        message: "Attachment not found",
+      });
+    }
+
+    // Ensure the attachment belongs to the requested project
+    if (Number(attachment.message.project_id) !== Number(projectId)) {
+      return res.status(404).json({
+        message: "Attachment not found in this project",
+      });
+    }
+
+    // Extract only the generated filename
+    const filename = path.basename(attachment.file_url);
+
+    const filePath = path.join(__dirname, "../uploads/chat", filename);
+
+    // Check whether the physical file exists
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({
+        message: "Physical attachment file not found",
+      });
+    }
+
+    return res.sendFile(filePath, {
+      headers: {
+        "Content-Disposition": `inline; filename="${attachment.file_name}"`,
+      },
+    });
+  } catch (error) {
+    console.error("Error downloading project attachment:", error);
+
+    return res.status(500).json({
+      message: "Failed to download attachment",
+    });
+  }
+}
+
 module.exports = {
   getProjectMessages,
   createProjectMessage,
   deleteProjectMessage,
+  downloadProjectAttachment,
 };

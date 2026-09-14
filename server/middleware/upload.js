@@ -10,13 +10,26 @@ if (!fs.existsSync(uploadDirectory)) {
   });
 }
 
+const allowedTypes = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+  "application/pdf": ".pdf",
+  "text/plain": ".txt",
+  "application/zip": ".zip",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    ".docx",
+};
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDirectory);
   },
 
   filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname);
+    const extension = allowedTypes[file.mimetype];
 
     const uniqueName = `${Date.now()}-${Math.round(
       Math.random() * 1e9,
@@ -27,19 +40,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-    "application/pdf",
-    "text/plain",
-    "application/zip",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
+  if (allowedTypes[file.mimetype]) {
     cb(null, true);
   } else {
     cb(new Error("File type is not allowed"), false);
@@ -51,6 +52,7 @@ const upload = multer({
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024,
+    files: 1,
   },
 });
 

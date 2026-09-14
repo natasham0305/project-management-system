@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const multer = require("multer");
 
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
@@ -11,6 +12,7 @@ const db = require("./models");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const { error } = require("console");
 
 const app = express();
 
@@ -41,6 +43,32 @@ app.use("/api", taskRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api", projectMemberRoutes);
+
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        message: "File size must not exceed 10 MB",
+      });
+    }
+
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+
+  if (error.message === "File type is not allowed") {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+
+  console.error("Unhandled server error:", error);
+
+  return res.status(500).json({
+    message: "Internal server error",
+  });
+});
 
 db.sequelize
   .authenticate()

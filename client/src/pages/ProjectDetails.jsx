@@ -209,43 +209,96 @@ function ProjectDetails() {
       setError("");
       setTasksError("");
 
-      try {
-        const projectData = await getProjectById(id, token);
-        setProject(projectData);
-      } catch (error) {
-        console.error("Failed to load project:", error);
-        setError(error.message || "Failed to load project");
-      } finally {
-        setLoading(false);
-      }
+      const projectPromise = getProjectById(id, token)
+        .then((projectData) => {
+          setProject(projectData);
+        })
+        .catch((error) => {
+          console.error("Failed to load project:", error);
+          setError(error.message || "Failed to load project");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
 
-      try {
-        const memberData = await fetchProjectMembers(id, token);
-        setMembers(memberData);
-      } catch (error) {
-        console.error("Failed to load project members:", error);
-      } finally {
-        setMembersLoading(false);
-      }
+      // try {
+      //   const projectData = await getProjectById(id, token);
+      //   setProject(projectData);
+      // } catch (error) {
+      //   console.error("Failed to load project:", error);
+      //   setError(error.message || "Failed to load project");
+      // } finally {
+      //   setLoading(false);
+      // }
 
-      if (isAdmin || isManager) {
-        try {
-          const usersData = await fetchUsers(token);
-          setAllUsers(usersData);
-        } catch (error) {
-          console.error("Failed to load users:", error);
-        }
-      }
+      const membersPromise = fetchProjectMembers(id, token)
+        .then((memberData) => {
+          setMembers(memberData);
+        })
+        .catch((error) => {
+          console.error("Failed to load project members:", error);
+        })
+        .finally(() => {
+          setMembersLoading(false);
+        });
 
-      try {
-        const taskData = await fetchTasks(id, token);
-        setTasks(taskData);
-      } catch (error) {
-        console.error("Failed to load tasks:", error);
-        setTasksError(error.message || "Failed to load tasks");
-      } finally {
-        setTasksLoading(false);
-      }
+      // try {
+      //   const memberData = await fetchProjectMembers(id, token);
+      //   setMembers(memberData);
+      // } catch (error) {
+      //   console.error("Failed to load project members:", error);
+      // } finally {
+      //   setMembersLoading(false);
+      // }
+
+      const tasksPromise = fetchTasks(id, token)
+        .then((taskData) => {
+          setTasks(taskData);
+        })
+        .catch((error) => {
+          console.error("Failed to load tasks:", error);
+          setTasksError(error.message || "Failed to load tasks");
+        })
+        .finally(() => {
+          setTasksLoading(false);
+        });
+
+      // if (isAdmin || isManager) {
+      //   try {
+      //     const usersData = await fetchUsers(token);
+      //     setAllUsers(usersData);
+      //   } catch (error) {
+      //     console.error("Failed to load users:", error);
+      //   }
+      // }
+
+      const usersPromise =
+        isAdmin || isManager
+          ? fetchUsers(token)
+              .then((usersData) => {
+                setAllUsers(usersData);
+              })
+              .catch((error) => {
+                console.error("Failed to load users:", error);
+              })
+          : Promise.resolve();
+
+      // try {
+      //   const taskData = await fetchTasks(id, token);
+      //   setTasks(taskData);
+      // } catch (error) {
+      //   console.error("Failed to load tasks:", error);
+      //   setTasksError(error.message || "Failed to load tasks");
+      // } finally {
+      //   setTasksLoading(false);
+      // }
+
+      await Promise.all([
+        projectPromise,
+        membersPromise,
+        tasksPromise,
+        usersPromise,
+      ]);
     }
 
     loadProject();
@@ -1007,7 +1060,12 @@ function ProjectDetails() {
                           {message.attachments?.length > 0 && (
                             <div className="project-message-attachments">
                               {message.attachments.map((attachment) => {
-                                const fileUrl = `${import.meta.env.VITE_API_URL}${attachment.file_url}`;
+                                const fileBaseUrl =
+                                  import.meta.env.VITE_API_URL.replace(
+                                    /\/api\/?$/,
+                                    "",
+                                  );
+                                const fileUrl = `${fileBaseUrl}${attachment.file_url}`;
 
                                 const isImage =
                                   attachment.file_type.startsWith("image/");
@@ -1026,7 +1084,7 @@ function ProjectDetails() {
                                       <a
                                         href={fileUrl}
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noopener noreferrer"
                                         className="chat-image-link"
                                       >
                                         <img
@@ -1036,12 +1094,7 @@ function ProjectDetails() {
                                         />
                                       </a>
                                     ) : (
-                                      <a
-                                        href={fileUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="chat-file-card"
-                                      >
+                                      <div className="chat-file-card">
                                         <div className="chat-file-icon">📄</div>
 
                                         <div className="chat-file-info">
@@ -1050,8 +1103,25 @@ function ProjectDetails() {
                                           </strong>
 
                                           <span>{fileSizeKB}</span>
+
+                                          <div className="chat-file-actions">
+                                            <a
+                                              href={fileUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                            >
+                                              Open
+                                            </a>
+
+                                            <a
+                                              href={fileUrl}
+                                              download={attachment.file_name}
+                                            >
+                                              Download
+                                            </a>
+                                          </div>
                                         </div>
-                                      </a>
+                                      </div>
                                     )}
                                   </div>
                                 );

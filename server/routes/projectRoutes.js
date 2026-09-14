@@ -12,6 +12,7 @@ const {
   getProjectMessages,
   createProjectMessage,
   deleteProjectMessage,
+  downloadProjectAttachment,
 } = require("../controllers/projectMessageController");
 
 const authenticateToken = require("../middleware/authMiddleware");
@@ -60,6 +61,12 @@ router.delete(
   "/:projectId/messages/:messageId",
   authenticateToken,
   deleteProjectMessage,
+);
+
+router.get(
+  "/:projectId/attachments/:attachmentId",
+  authenticateToken,
+  downloadProjectAttachment,
 );
 
 module.exports = router;
