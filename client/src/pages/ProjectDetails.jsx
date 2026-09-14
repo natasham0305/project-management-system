@@ -239,7 +239,7 @@ function ProjectDetails() {
           console.error("Failed to load project members:", error);
         })
         .finally(() => {
-          setLoading(false);
+          setMembersLoading(false);
         });
 
       // try {
@@ -1060,7 +1060,12 @@ function ProjectDetails() {
                           {message.attachments?.length > 0 && (
                             <div className="project-message-attachments">
                               {message.attachments.map((attachment) => {
-                                const fileUrl = `${import.meta.env.VITE_API_URL}${attachment.file_url}`;
+                                const fileBaseUrl =
+                                  import.meta.env.VITE_API_URL.replace(
+                                    /\/api\/?$/,
+                                    "",
+                                  );
+                                const fileUrl = `${fileBaseUrl}${attachment.file_url}`;
 
                                 const isImage =
                                   attachment.file_type.startsWith("image/");
@@ -1079,7 +1084,7 @@ function ProjectDetails() {
                                       <a
                                         href={fileUrl}
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noopener noreferrer"
                                         className="chat-image-link"
                                       >
                                         <img
@@ -1089,12 +1094,7 @@ function ProjectDetails() {
                                         />
                                       </a>
                                     ) : (
-                                      <a
-                                        href={fileUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="chat-file-card"
-                                      >
+                                      <div className="chat-file-card">
                                         <div className="chat-file-icon">📄</div>
 
                                         <div className="chat-file-info">
@@ -1103,8 +1103,25 @@ function ProjectDetails() {
                                           </strong>
 
                                           <span>{fileSizeKB}</span>
+
+                                          <div className="chat-file-actions">
+                                            <a
+                                              href={fileUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                            >
+                                              Open
+                                            </a>
+
+                                            <a
+                                              href={fileUrl}
+                                              download={attachment.file_name}
+                                            >
+                                              Download
+                                            </a>
+                                          </div>
                                         </div>
-                                      </a>
+                                      </div>
                                     )}
                                   </div>
                                 );
