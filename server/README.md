@@ -86,90 +86,30 @@ The project follows a client-server architecture with a React frontend, Express.
 
 ```text
                     ┌───────────────────┐
-│          User.       │
+                    │       User        │
                     └─────────┬─────────┘
-            │
-            ▼
+                              │
+                              ▼
                     ┌───────────────────┐
-│                      │  Frontend  
-          React
-│       + Vite         │
+                    │  React Frontend   │
+                    │   + Vite           │
                     └─────────┬─────────┘
-            │
-        HTTP / API
-            │
-            ▼
+                              │
+                         HTTP / API
+                              │
+                              ▼
                     ┌───────────────────┐
-         Express          Backend     │        Node.js       │
+                    │  Express Backend  │
+                    │     Node.js       │
                     └─────────┬─────────┘
-            │
-    Database Queries
-            │
-            ▼
+                              │
+                    Database Queries
+                              │
+                              ▼
                     ┌───────────────────┐
-│    PostgreSQL        │
+                    │    PostgreSQL     │
                     └───────────────────┘
 
-
-project-management-system/
-│
-├── .github/
-│   └── workflows/
-│       └── ...                         # GitHub Actions workflows
-│
-├── client/
-│   │
-│   ├── src/
-│   │   ├── components/                 # Reusable React components
-│   │   ├── context/                    # Application context/state
-│   │   ├── pages/                      # Application pages
-│   │   ├── services/                   # API/service layer
-│   │   ├── App.css                     # Application styles
-│   │   ├── App.jsx                     # Root React component
-│   │   ├── index.css                   # Global styles
-│   │   └── main.jsx                    # React entry point
-│   │
-│   ├── tests/
-│   │   ├── auth/                       # Authentication test utilities
-│   │   ├── fixtures/                   # Playwright test fixtures
-│   │   ├── helpers/                    # Test helper utilities
-│   │   ├── pages/                      # Page objects / page test utilities
-│   │   ├── auth.setup.ts               # Authentication test setup
-│   │   ├── example.spec.ts             # Example end-to-end test
-│   │   ├── login.spec.ts               # Login tests
-│   │   ├── projects.spec.ts            # Project-related tests
-│   │   └── register.spec.ts            # Registration tests
-│   │
-│   ├── .github/
-│   │   └── workflows/
-│   │
-│   ├── .gitignore
-│   ├── .oxlintrc.json                  # Oxlint configuration
-│   ├── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── playwright.config.ts             # Playwright configuration
-│   └── vite.config.js                   # Vite configuration
-│
-├── server/
-│   │
-│   ├── config/                         # Server configuration
-│   ├── controllers/                    # Request and business logic
-│   ├── middleware/                     # Express middleware
-│   ├── migrations/                     # Database migrations
-│   ├── models/                         # Database models
-│   ├── routes/                         # API routes
-│   ├── seeders/                        # Database seed data
-│   │
-│   ├── db.js                           # Database connection
-│   ├── server.js                       # Server entry point
-│   ├── package.json
-│   └── package-lock.json
-│
-├── .gitignore
-├── .oxlintrc.json
-├── README.md
-└── ...
 
 ## Getting Started
 
