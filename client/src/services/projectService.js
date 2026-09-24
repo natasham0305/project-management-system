@@ -77,6 +77,8 @@ export async function removeProjectMember(projectId, userId, token) {
   );
 }
 
+//message
+
 export async function fetchProjectMessages(projectId, token) {
   return apiFetch(
     `/projects/${projectId}/messages`,
@@ -117,6 +119,38 @@ export async function deleteProjectMessage(projectId, messageId, token) {
     token,
   );
 }
+
+export async function fetchProjectAttachment(projectId, attachmentId, token) {
+  return apiFetch(
+    `/projects/${projectId}/attachments/${attachmentId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+    token,
+  );
+}
+
+//   )
+//   const response = await fetch(
+//     `${import.meta.env.VITE_API_URL}`,
+//     {
+
+//     },
+//   );
+
+//   if (!response.ok) {
+//     const errorData = await response.json().catch(() => ({}));
+
+//     throw new Error(
+//       errorData.message || "Failed to fetch attachment",
+//     );
+//   }
+
+//   return response.blob();
+// }
 // TASKS
 
 export async function fetchTasks(projectId, token) {
