@@ -44,10 +44,19 @@ export default defineConfig({
     //   use: { ...devices["Desktop Chrome"] },
     // },
     {
+      name: "api",
+      testMatch: /.*\.api\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        baseURL: "http://localhost:5000",
+      },
+    },
+    {
       name: "chromium",
+      testIgnore: /.*\.api\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "tests/auth/auth.json",
+        storageState: "tests/auth/admin.json",
       },
       dependencies: ["setup"],
     },
