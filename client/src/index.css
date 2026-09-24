@@ -4393,3 +4393,68 @@ button:disabled {
     justify-content: flex-start;
   }
 }
+
+/* ── Dashboard: loading skeletons ─────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.dashboard-skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2, #2a2a3a) 25%,
+    var(--color-surface-3, #35354a) 50%,
+    var(--color-surface-2, #2a2a3a) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.dashboard-skeleton-value {
+  width: 56px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.dashboard-skeleton-num {
+  width: 32px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.dashboard-skeleton-row {
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+}
+
+/* ── Dashboard: error banner ──────────────────────────────────────── */
+.dashboard-error-banner {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-size: 0.9rem;
+}
+
+/* ── Dashboard: empty state ───────────────────────────────────────── */
+.dashboard-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--color-text-muted, #888);
+  font-size: 0.9rem;
+}
+
+/* ── Dashboard: clickable project row hover ───────────────────────── */
+.dashboard-project-item[style*="cursor"] {
+  transition: background 0.18s ease;
+}
+.dashboard-project-item[style*="cursor"]:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
