@@ -1,79 +1,88 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth.js";
+import { fetchProjects, fetchTasks } from "../services/projectService.js";
+
 function Dashboard() {
+  const { token, user } = useAuth();
+  const navigate = useNavigate();
+
+  const [projects, setProjects] = useState([]);
+  const [taskStats, setTaskStats] = useState({ todo: 0, inProgress: 0, done: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all projects
+        const projectsData = await fetchProjects(token);
+        setProjects(projectsData);
+
+        // Fetch tasks for each project and aggregate counts
+        let todo = 0;
+        let inProgress = 0;
+        let done = 0;
+
+        await Promise.all(
+          projectsData.map(async (project) => {
+            const tasks = await fetchTasks(project.id, token);
+            for (const task of tasks) {
+              const s = (task.status || "").toLowerCase();
+              if (s === "done" || s === "completed") done++;
+              else if (s === "in_progress" || s === "in progress") inProgress++;
+              else todo++;
+            }
+          })
+        );
+
+        setTaskStats({ todo, inProgress, done });
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err);
+        setError(err.message || "Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (token) {
+      loadDashboardData();
+    }
+  }, [token]);
+
+  const totalTasks = taskStats.todo + taskStats.inProgress + taskStats.done;
+
+  // Compute per-project progress based on task completion
+  const recentProjects = projects.slice(0, 5);
+
+  // Stat cards derived from real data
   const statistics = [
     {
       title: "Projects",
-      value: 12,
+      value: loading ? "—" : projects.length,
       icon: "📁",
       description: "Total projects",
     },
     {
       title: "Tasks",
-      value: 45,
+      value: loading ? "—" : totalTasks,
       icon: "✓",
-      description: "All assigned tasks",
+      description: "All tasks across projects",
     },
     {
       title: "Completed",
-      value: 28,
+      value: loading ? "—" : taskStats.done,
       icon: "🎯",
       description: "Tasks completed",
     },
     {
-      title: "Overdue",
-      value: 3,
-      icon: "⚠",
-      description: "Need attention",
-    },
-  ];
-
-  const recentProjects = [
-    {
-      name: "Project Management System",
-      status: "In Progress",
-      priority: "High",
-      tasks: 18,
-      progress: 72,
-    },
-    {
-      name: "Website Redesign",
-      status: "Planning",
-      priority: "Medium",
-      tasks: 12,
-      progress: 35,
-    },
-    {
-      name: "Mobile Application",
-      status: "Completed",
-      priority: "Low",
-      tasks: 24,
-      progress: 100,
-    },
-  ];
-
-  const recentActivity = [
-    {
-      icon: "✓",
-      title: "Task completed",
-      description: "API authentication task was completed",
-      time: "5 min ago",
-    },
-    {
-      icon: "+",
-      title: "Project member added",
-      description: "Rahul was added to Website Redesign",
-      time: "18 min ago",
-    },
-    {
-      icon: "💬",
-      title: "New message",
-      description: "New message in Project Management System",
-      time: "32 min ago",
-    },
-    {
-      icon: "✎",
-      title: "Task updated",
-      description: "Database integration status changed",
-      time: "1 hour ago",
+      title: "In Progress",
+      value: loading ? "—" : taskStats.inProgress,
+      icon: "⚡",
+      description: "Tasks in progress",
     },
   ];
 
@@ -86,13 +95,23 @@ function Dashboard() {
 
           <h1>Dashboard</h1>
 
-          <p>Here's what's happening across your workspace.</p>
+          <p>
+            {user ? `Welcome back, ${user.username}! ` : ""}
+            Here's what's happening across your workspace.
+          </p>
         </div>
 
         <div className="dashboard-header-action">
           <span className="dashboard-date">Workspace Overview</span>
         </div>
       </section>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="dashboard-error-banner" role="alert">
+          ⚠ {error}
+        </div>
+      )}
 
       {/* Statistics */}
       <section className="dashboard-stats">
@@ -104,7 +123,13 @@ function Dashboard() {
               <span className="dashboard-stat-label">{stat.title}</span>
             </div>
 
-            <div className="dashboard-stat-value">{stat.value}</div>
+            <div className="dashboard-stat-value">
+              {loading ? (
+                <span className="dashboard-skeleton dashboard-skeleton-value" />
+              ) : (
+                stat.value
+              )}
+            </div>
 
             <p>{stat.description}</p>
           </div>
@@ -122,56 +147,58 @@ function Dashboard() {
               <h2>Recent projects</h2>
             </div>
 
-            <button type="button" className="dashboard-text-button">
+            <button
+              type="button"
+              className="dashboard-text-button"
+              onClick={() => navigate("/projects")}
+            >
               View all
             </button>
           </div>
 
           <div className="dashboard-project-list">
-            {recentProjects.map((project) => (
-              <div className="dashboard-project-item" key={project.name}>
-                <div className="dashboard-project-left">
-                  <div className="dashboard-project-icon">
-                    {project.name.charAt(0)}
-                  </div>
-
-                  <div>
-                    <h3>{project.name}</h3>
-
-                    <div className="dashboard-project-meta">
-                      <span>{project.tasks} tasks</span>
-
-                      <span>•</span>
-
-                      <span>{project.priority} priority</span>
-                    </div>
-                  </div>
+            {loading ? (
+              [1, 2, 3].map((n) => (
+                <div className="dashboard-project-item" key={n}>
+                  <div className="dashboard-skeleton dashboard-skeleton-row" />
                 </div>
-
-                <div className="dashboard-project-right">
-                  <span
-                    className={`dashboard-status ${project.status
-                      .toLowerCase()
-                      .replace(/\s+/g, "-")}`}
-                  >
-                    {project.status}
-                  </span>
-
-                  <div className="dashboard-progress">
-                    <div className="dashboard-progress-bar">
-                      <div
-                        className="dashboard-progress-fill"
-                        style={{
-                          width: `${project.progress}%`,
-                        }}
-                      />
+              ))
+            ) : recentProjects.length === 0 ? (
+              <p className="dashboard-empty">No projects found.</p>
+            ) : (
+              recentProjects.map((project) => (
+                <div
+                  className="dashboard-project-item"
+                  key={project.id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                >
+                  <div className="dashboard-project-left">
+                    <div className="dashboard-project-icon">
+                      {project.name.charAt(0).toUpperCase()}
                     </div>
 
-                    <span>{project.progress}%</span>
+                    <div>
+                      <h3>{project.name}</h3>
+
+                      <div className="dashboard-project-meta">
+                        <span>{project.priority} priority</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="dashboard-project-right">
+                    <span
+                      className={`dashboard-status ${(project.status || "")
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                    >
+                      {project.status || "Active"}
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -188,71 +215,61 @@ function Dashboard() {
           <div className="task-overview">
             <div className="task-overview-item">
               <div className="task-overview-label">
-                <span className="task-dot todo"></span>
+                <span className="task-dot todo" />
                 <span>Todo</span>
               </div>
 
-              <strong>8</strong>
+              <strong>
+                {loading ? (
+                  <span className="dashboard-skeleton dashboard-skeleton-num" />
+                ) : (
+                  taskStats.todo
+                )}
+              </strong>
             </div>
 
             <div className="task-overview-item">
               <div className="task-overview-label">
-                <span className="task-dot progress"></span>
+                <span className="task-dot progress" />
                 <span>In Progress</span>
               </div>
 
-              <strong>9</strong>
+              <strong>
+                {loading ? (
+                  <span className="dashboard-skeleton dashboard-skeleton-num" />
+                ) : (
+                  taskStats.inProgress
+                )}
+              </strong>
             </div>
 
             <div className="task-overview-item">
               <div className="task-overview-label">
-                <span className="task-dot done"></span>
+                <span className="task-dot done" />
                 <span>Completed</span>
               </div>
 
-              <strong>28</strong>
+              <strong>
+                {loading ? (
+                  <span className="dashboard-skeleton dashboard-skeleton-num" />
+                ) : (
+                  taskStats.done
+                )}
+              </strong>
             </div>
 
             <div className="task-overview-total">
               <span>Total tasks</span>
 
-              <strong>45</strong>
+              <strong>
+                {loading ? (
+                  <span className="dashboard-skeleton dashboard-skeleton-num" />
+                ) : (
+                  totalTasks
+                )}
+              </strong>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Activity */}
-      <section className="dashboard-panel dashboard-activity-panel">
-        <div className="dashboard-panel-header">
-          <div>
-            <span className="card-eyebrow">ACTIVITY</span>
-
-            <h2>Recent activity</h2>
-          </div>
-
-          <button type="button" className="dashboard-text-button">
-            View all
-          </button>
-        </div>
-
-        <div className="dashboard-activity-list">
-          {recentActivity.map((activity, index) => (
-            <div
-              className="dashboard-activity-item"
-              key={`${activity.title}-${index}`}
-            >
-              <div className="dashboard-activity-icon">{activity.icon}</div>
-
-              <div className="dashboard-activity-content">
-                <strong>{activity.title}</strong>
-
-                <p>{activity.description}</p>
-              </div>
-
-              <span className="dashboard-activity-time">{activity.time}</span>
-            </div>
-          ))}
         </div>
       </section>
     </main>

@@ -221,6 +221,26 @@ function ProjectDetails() {
           setLoading(false);
         });
 
+      const handleOpenAttachment = async (attachment) => {
+        try {
+          const blob = await fetchProjectAttachment(
+            project.id,
+            attachment.id,
+            token,
+          );
+
+          const fileUrl = URL.createObjectURL(blob);
+
+          window.open(fileUrl, "_blank");
+
+          setTimeout(() => {
+            URL.revokeObjectURL(fileUrl);
+          }, 60_000);
+        } catch (error) {
+          console.error("Attachment error:", error);
+          alert(error.message);
+        }
+      };
       // try {
       //   const projectData = await getProjectById(id, token);
       //   setProject(projectData);
@@ -1060,13 +1080,6 @@ function ProjectDetails() {
                           {message.attachments?.length > 0 && (
                             <div className="project-message-attachments">
                               {message.attachments.map((attachment) => {
-                                const fileBaseUrl =
-                                  import.meta.env.VITE_API_URL.replace(
-                                    /\/api\/?$/,
-                                    "",
-                                  );
-                                const fileUrl = `${fileBaseUrl}${attachment.file_url}`;
-
                                 const isImage =
                                   attachment.file_type.startsWith("image/");
 
@@ -1081,18 +1094,17 @@ function ProjectDetails() {
                                     className="chat-attachment"
                                   >
                                     {isImage ? (
-                                      <a
-                                        href={fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                      <button
+                                        type="button"
                                         className="chat-image-link"
+                                        onClick={() =>
+                                          handleOpenAttachment(attachment)
+                                        }
                                       >
-                                        <img
-                                          src={fileUrl}
-                                          alt={attachment.file_name}
-                                          className="chat-image-preview"
-                                        />
-                                      </a>
+                                        <div className="chat-image-placeholder">
+                                          🖼️ {attachment.file_name}
+                                        </div>
+                                      </button>
                                     ) : (
                                       <div className="chat-file-card">
                                         <div className="chat-file-icon">📄</div>
@@ -1105,20 +1117,23 @@ function ProjectDetails() {
                                           <span>{fileSizeKB}</span>
 
                                           <div className="chat-file-actions">
-                                            <a
-                                              href={fileUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleOpenAttachment(attachment)
+                                              }
                                             >
                                               Open
-                                            </a>
+                                            </button>
 
-                                            <a
-                                              href={fileUrl}
-                                              download={attachment.file_name}
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleOpenAttachment(attachment)
+                                              }
                                             >
                                               Download
-                                            </a>
+                                            </button>
                                           </div>
                                         </div>
                                       </div>
@@ -1129,7 +1144,6 @@ function ProjectDetails() {
                             </div>
                           )}
                         </div>
-
                         {/* Time */}
                         <div className="project-message-time">
                           {message.created_at
