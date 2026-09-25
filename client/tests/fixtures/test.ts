@@ -7,6 +7,7 @@ type TestFixtures = {
   loginPage: LoginPage;
   registerPage: RegisterPage;
   projectsPage: ProjectsPage;
+  authenticatedPage: void;
 };
 
 export const test = base.extend<TestFixtures>({
@@ -21,6 +22,18 @@ export const test = base.extend<TestFixtures>({
   projectsPage: async ({ page }, use) => {
     const projectsPage = new ProjectsPage(page);
     await use(projectsPage);
+  },
+
+  authenticatedPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
+
+    await loginPage.open();
+
+    await loginPage.login(process.env.TEST_EMAIL!, process.env.TEST_PASSWORD!);
+
+    await loginPage.isOnDashboard();
+
+    await use();
   },
 });
 
