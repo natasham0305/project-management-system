@@ -10,3 +10,4 @@ node_modules/
 
 # Authentication storage state files
 tests/auth/*.json
+client/tests/auth/*.json

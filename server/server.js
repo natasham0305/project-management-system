@@ -75,17 +75,21 @@ app.use((error, req, res, next) => {
 
 db.sequelize
   .authenticate()
-  .then(() => {
+  .then(async () => {
     console.log("Sequelize connected to PostgreSQL");
+
+    // const [result] = await db.sequelize.query(`
+    //   SELECT current_database() AS database,
+    //          current_user AS user
+    // `);
+
+    // console.log("Connected DB:", result);
 
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
-  .catch((error) => {
-    console.error("Sequelize connection failed:", error);
-  });
-
+  .catch((error) => console.error("Sequelize connection failed:", error));
 io.on("connection", (socket) => {
   // console.log("User connected:", socket.id);
 
