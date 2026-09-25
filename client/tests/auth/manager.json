@@ -1,0 +1,13 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": []
+    }
+  ],
+  "sessionStorage": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwicm9sZSI6Im1hbmFnZXIiLCJpYXQiOjE3OTAyNTM0NDMsImV4cCI6MTc5MDI1NzA0M30.cTygbUoF1tB0ry6OT0qo_9f0bV77Pne_bqcQlp6zi6c",
+    "user": "{\"id\":4,\"username\":\"Manager User\",\"email\":\"manager@example.com\",\"role\":\"manager\"}"
+  }
+}

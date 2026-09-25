@@ -32,7 +32,7 @@ module.exports = {
       type: "foreign key",
       name: "project_members_project_id_fkey",
       references: {
-        table: "projects",
+        table: "Projects",
         field: "id",
       },
       onUpdate: "CASCADE",
