@@ -24,17 +24,17 @@ export const test = base.extend<TestFixtures>({
     await use(projectsPage);
   },
 
-  authenticatedPage: async ({ page }, use) => {
-    const loginPage = new LoginPage(page);
+  //   authenticatedPage: async ({ page }, use) => {
+  //     const loginPage = new LoginPage(page);
 
-    await loginPage.open();
+  //     await loginPage.open();
 
-    await loginPage.login(process.env.TEST_EMAIL!, process.env.TEST_PASSWORD!);
+  //     await loginPage.login(process.env.TEST_EMAIL!, process.env.TEST_PASSWORD!);
 
-    await loginPage.isOnDashboard();
+  //     await loginPage.isOnDashboard();
 
-    await use();
-  },
+  //     await use();
+  //   },
 });
 
 export { expect } from "@playwright/test";

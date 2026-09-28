@@ -63,6 +63,30 @@ jobs:
     name: Playwright Tests
     runs-on: ubuntu-latest
 
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: project_management_test
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ci-test-secret
+      PORT: 5000
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: project_management_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d project_management_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -78,13 +102,45 @@ jobs:
         working-directory: client
         run: npm ci
 
+      - name: Install backend dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run database migrations
+        working-directory: server
+        run: npx sequelize-cli db:migrate
+
+      - name: Seed test users
+        working-directory: server
+        run: npx sequelize-cli db:seed:all
+
+      - name: Start backend
+        working-directory: server
+        run: npm start > server.log 2>&1 &
+
+      - name: Wait for backend
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/ > /dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+
+            echo "Waiting for backend..."
+            sleep 2
+          done
+
+          echo "Backend did not start"
+          cat server/server.log
+          exit 1
+
       - name: Install Playwright browsers
         working-directory: client
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         working-directory: client
-        env:
-          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
-          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: npx playwright test
+        # env:
+        #   TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+        #   TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}

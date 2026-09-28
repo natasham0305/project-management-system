@@ -1,9 +1,12 @@
 import { test, expect } from "./fixtures/test";
+import { restoreSession } from "./helpers/auth";
 
 test("authenticated user can open projects page", async ({
+  page,
   projectsPage,
-  authenticatedPage,
 }) => {
+  await restoreSession(page.context());
+
   await projectsPage.open();
 
   await projectsPage.isOnProjectsPage();
@@ -11,11 +14,9 @@ test("authenticated user can open projects page", async ({
   await expect(projectsPage.pageTitle).toHaveText("Projects");
 });
 
-test("user can create a project", async ({
-  page,
-  projectsPage,
-  authenticatedPage,
-}) => {
+test("user can create a project", async ({ page, projectsPage }) => {
+  await restoreSession(page.context());
+
   await projectsPage.open();
 
   const projectName = `Automation Project ${Date.now()}`;
@@ -44,10 +45,8 @@ test("user can create a project", async ({
   await expect(createdProject).toBeVisible();
 });
 
-test("project name is required", async ({
-  projectsPage,
-  authenticatedPage,
-}) => {
+test("project name is required", async ({ page, projectsPage }) => {
+  await restoreSession(page.context());
   await projectsPage.open();
 
   await projectsPage.createProject(
