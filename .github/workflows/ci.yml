@@ -71,6 +71,7 @@ jobs:
       DB_PASSWORD: postgres
       JWT_SECRET: ci-test-secret
       PORT: 5000
+      VITE_API_URL: http://localhost:5000/api
 
     services:
       postgres:

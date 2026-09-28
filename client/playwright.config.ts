@@ -33,7 +33,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npm run dev",
+    command: process.env.CI ? "npm run dev -- --mode ci" : "npm run dev",
     url: "http://localhost:5173",
     cwd: ".",
     reuseExistingServer: !process.env.CI,
