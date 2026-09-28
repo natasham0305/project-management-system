@@ -1,11 +1,17 @@
 import { test as setup, expect, Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { TEST_EMAIL_ADMIN, TEST_EMAIL_MANAGER, TEST_EMAIL_MEMBER, TEST_PASSWORD } from "./testData/credentials";
 
 const authDir = path.resolve("tests/auth");
 
 // Helper to log in a user and persist their sessionStorage to a file
-async function loginAndSaveState(page: Page, email: string, password: string, stateFileName: string) {
+async function loginAndSaveState(
+  page: Page,
+  email: string,
+  password: string,
+  stateFileName: string,
+) {
   await page.goto("/login");
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
@@ -58,13 +64,23 @@ async function loginAndSaveState(page: Page, email: string, password: string, st
 }
 
 setup("authenticate as admin", async ({ page }) => {
-  await loginAndSaveState(page, "admin@example.com", "Password123!", "admin.json");
+  await loginAndSaveState(page, TEST_EMAIL_ADMIN, TEST_PASSWORD, "admin.json");
 });
 
 setup("authenticate as manager", async ({ page }) => {
-  await loginAndSaveState(page, "manager@example.com", "Password123!", "manager.json");
+  await loginAndSaveState(
+    page,
+    TEST_EMAIL_MANAGER,
+    TEST_PASSWORD,
+    "manager.json",
+  );
 });
 
 setup("authenticate as member", async ({ page }) => {
-  await loginAndSaveState(page, "member@example.com", "Password123!", "member.json");
+  await loginAndSaveState(
+    page,
+    TEST_EMAIL_MEMBER,
+    TEST_PASSWORD,
+    "member.json",
+  );
 });

@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures/test";
+import { TEST_EMAIL_ADMIN, TEST_PASSWORD } from "./testData/credentials";
 // import { LoginPage } from "./pages/LoginPage";
 
 //   await expect(page.locator("#email")).toBeVisible();
@@ -8,7 +9,7 @@ import { test, expect } from "./fixtures/test";
 test("user can login with valid credentials", async ({ loginPage }) => {
   // const loginPage = new LoginPage(page);
   await loginPage.open();
-  await loginPage.login(process.env.TEST_EMAIL!, process.env.TEST_PASSWORD!);
+  await loginPage.login(TEST_EMAIL_ADMIN, TEST_PASSWORD);
   // await page.goto("/login");
   // await page.getByLabel("Email address").fill(process.env.TEST_EMAIL!);
   // await page.locator("#password").fill(process.env.TEST_PASSWORD!);
@@ -18,19 +19,19 @@ test("user can login with valid credentials", async ({ loginPage }) => {
 
 test("user cannot login with invalid password", async ({ loginPage }) => {
   await loginPage.open();
-  await loginPage.login(process.env.TEST_EMAIL!, "invalidPass");
+  await loginPage.login(TEST_EMAIL_ADMIN, "invalidPass");
   await expect(loginPage.errorMessage).toBeVisible();
 });
 
 test("user cannot login with empty email", async ({ loginPage }) => {
   await loginPage.open();
-  await loginPage.login("", process.env.TEST_PASSWORD!);
+  await loginPage.login("", TEST_PASSWORD!);
   await expect(loginPage.errorMessage).toBeVisible();
 });
 
 test("user cannot login with empty password", async ({ loginPage }) => {
   await loginPage.open();
-  await loginPage.login(process.env.TEST_EMAIL!, "");
+  await loginPage.login(TEST_EMAIL_ADMIN, "");
   await expect(loginPage.errorMessage).toBeVisible();
 });
 
