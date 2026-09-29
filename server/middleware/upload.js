@@ -17,7 +17,7 @@ const allowedTypes = {
   "image/webp": ".webp",
   "application/pdf": ".pdf",
   "text/plain": ".txt",
-  "application/zip": ".zip",
+  // "application/zip": ".zip",
   "application/msword": ".doc",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
     ".docx",

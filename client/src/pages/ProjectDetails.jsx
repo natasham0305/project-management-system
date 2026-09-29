@@ -131,18 +131,27 @@ function ProjectDetails() {
   // }, [chatOpen]);
 
   useEffect(() => {
-    if (!id) {
+    if (!id || !token) {
       return;
     }
 
+    socket.auth = {
+      token,
+    };
+
     socket.connect();
 
-    socket.emit("joinProject", id);
+    const handleConnect = () => {
+      socket.emit("joinProject", id);
+    };
 
+    socket.on("connect", handleConnect);
     return () => {
+      socket.off("connect", handleConnect);
       socket.disconnect();
     };
-  }, [id]);
+  }, [id, token]);
+
   useEffect(() => {
     if (!id) {
       return;

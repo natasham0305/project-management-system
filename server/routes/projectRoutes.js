@@ -1,4 +1,5 @@
 const express = require("express");
+const sanitizeBody = require("../middleware/sanitize");
 
 const {
   getProjectById,
@@ -29,6 +30,7 @@ router.post(
   "/",
   authenticateToken,
   authorizeRoles("admin", "manager"),
+  sanitizeBody(["name", "description"]),
   createProject,
 );
 
@@ -36,6 +38,7 @@ router.put(
   "/:id",
   authenticateToken,
   authorizeRoles("admin", "manager"),
+  sanitizeBody(["name", "description"]),
   updateProject,
 );
 
@@ -54,6 +57,7 @@ router.post(
   "/:projectId/messages",
   authenticateToken,
   upload.single("file"),
+  sanitizeBody(["file"]),
   createProjectMessage,
 );
 
