@@ -16,7 +16,10 @@ const { Server } = require("socket.io");
 // const { error } = require("console");
 const app = express();
 
-const allowedOrigins = [process.env.CLIENT_URL_LOCAL, process.env.CLIENT_URL];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://project-management-system-theta-tan.vercel.app",
+];
 
 const corsOptions = {
   origin: allowedOrigins,
