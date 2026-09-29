@@ -21,7 +21,7 @@ async function register(req, res) {
     }
 
     // Validate password
-    if (!password) {
+    if (!password || !password.trim()) {
       return res.status(400).json({
         message: "Password is required",
       });
@@ -106,7 +106,7 @@ async function login(req, res) {
 
     // Validate password
 
-    if (!password) {
+    if (!password || !password.trim()) {
       return res.status(400).json({
         message: "Password is required",
       });

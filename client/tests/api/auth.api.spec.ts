@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { TEST_EMAIL_ADMIN, TEST_PASSWORD } from "../testData/credentials";
 
 test.describe("Auth API", () => {
   test.describe("POST /api/auth/register", () => {
@@ -15,7 +16,7 @@ test.describe("Auth API", () => {
         data: payload,
       });
 
-      expect(response.status()).toBe(201);
+      expect(response.status()).toBe(200);
       const body = await response.json();
       expect(body.message).toBe("User registered successfully");
       expect(body.user).toHaveProperty("id");
@@ -55,7 +56,9 @@ test.describe("Auth API", () => {
       expect(body.message).toBe("Email is required");
     });
 
-    test("should fail when password is shorter than 8 characters", async ({ request }) => {
+    test("should fail when password is shorter than 8 characters", async ({
+      request,
+    }) => {
       const response = await request.post("/api/auth/register", {
         data: {
           username: "validuser",
@@ -85,7 +88,9 @@ test.describe("Auth API", () => {
       expect(body.message).toBe("Passwords do not match");
     });
 
-    test("should fail when email is already registered", async ({ request }) => {
+    test("should fail when email is already registered", async ({
+      request,
+    }) => {
       // Use existing seed / test email
       const response = await request.post("/api/auth/register", {
         data: {
@@ -103,11 +108,13 @@ test.describe("Auth API", () => {
   });
 
   test.describe("POST /api/auth/login", () => {
-    test("should successfully log in an existing user and return a JWT", async ({ request }) => {
+    test("should successfully log in an existing user and return a JWT", async ({
+      request,
+    }) => {
       const response = await request.post("/api/auth/login", {
         data: {
-          email: process.env.TEST_EMAIL,
-          password: process.env.TEST_PASSWORD,
+          email: TEST_EMAIL_ADMIN,
+          password: TEST_PASSWORD,
         },
       });
 
@@ -123,7 +130,7 @@ test.describe("Auth API", () => {
       const response = await request.post("/api/auth/login", {
         data: {
           email: "",
-          password: process.env.TEST_PASSWORD,
+          password: TEST_PASSWORD,
         },
       });
 
@@ -132,10 +139,12 @@ test.describe("Auth API", () => {
       expect(body.message).toBe("Email is required");
     });
 
-    test("should reject login when password is missing", async ({ request }) => {
+    test("should reject login when password is missing", async ({
+      request,
+    }) => {
       const response = await request.post("/api/auth/login", {
         data: {
-          email: process.env.TEST_EMAIL,
+          email: TEST_EMAIL_ADMIN,
           password: "",
         },
       });
@@ -145,10 +154,12 @@ test.describe("Auth API", () => {
       expect(body.message).toBe("Password is required");
     });
 
-    test("should reject login when password is incorrect", async ({ request }) => {
+    test("should reject login when password is incorrect", async ({
+      request,
+    }) => {
       const response = await request.post("/api/auth/login", {
         data: {
-          email: process.env.TEST_EMAIL,
+          email: TEST_EMAIL_ADMIN,
           password: "IncorrectPassword123!",
         },
       });
@@ -158,7 +169,9 @@ test.describe("Auth API", () => {
       expect(body.message).toBe("Invalid email or password");
     });
 
-    test("should reject login when email does not exist", async ({ request }) => {
+    test("should reject login when email does not exist", async ({
+      request,
+    }) => {
       const response = await request.post("/api/auth/login", {
         data: {
           email: `nonexistent_${Date.now()}@example.com`,

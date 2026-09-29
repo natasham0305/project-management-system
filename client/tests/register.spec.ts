@@ -7,10 +7,10 @@ test("user can create an account with valid details", async ({
   await registerPage.open();
 
   await registerPage.register(
-    "testuser123",
+    "testuser1234",
     `testuser_${Date.now()}@example.com`,
-    "Password123!",
-    "Password123!",
+    "Password1234!",
+    "Password1234!",
   );
 
   await expect(registerPage.successMessage).toHaveText(
