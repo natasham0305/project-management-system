@@ -16,7 +16,7 @@ test.describe("Auth API", () => {
         data: payload,
       });
 
-      expect(response.status()).toBe(200);
+      expect(response.status()).toBe(201);
       const body = await response.json();
       expect(body.message).toBe("User registered successfully");
       expect(body.user).toHaveProperty("id");
@@ -95,7 +95,7 @@ test.describe("Auth API", () => {
       const response = await request.post("/api/auth/register", {
         data: {
           username: "duplicateuser",
-          email: process.env.TEST_EMAIL,
+          email: TEST_EMAIL_ADMIN,
           password: "Password123!",
           confirmPassword: "Password123!",
         },
@@ -123,7 +123,7 @@ test.describe("Auth API", () => {
       expect(body.message).toBe("Login successful");
       expect(body).toHaveProperty("token");
       expect(typeof body.token).toBe("string");
-      expect(body.user.email).toBe(process.env.TEST_EMAIL?.toLowerCase());
+      expect(body.user.email).toBe(TEST_EMAIL_ADMIN?.toLowerCase());
     });
 
     test("should reject login when email is missing", async ({ request }) => {
