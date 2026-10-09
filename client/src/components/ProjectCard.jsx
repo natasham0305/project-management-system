@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 
 function ProjectCard({
   project,
+  canDelete,
   onDelete,
   onEdit
 }) {
@@ -86,12 +87,14 @@ function ProjectCard({
             Edit
           </button>
 
-          <button
-            className="delete-button"
-            onClick={() => onDelete(project.id)}
-          >
-            Delete
-          </button>
+          {canDelete && (
+            <button
+              className="delete-button"
+              onClick={() => onDelete(project.id)}
+            >
+              Delete
+            </button>
+          )}
         </div>
 
       </div>

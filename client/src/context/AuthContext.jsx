@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuthContext } from "./AuthContext.js";
 
 function getStoredUser() {
@@ -17,13 +17,45 @@ function getStoredUser() {
   }
 }
 
-function getStoredToken() {
-  return sessionStorage.getItem("token");
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getStoredUser);
-  const [token, setToken] = useState(getStoredToken);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const authRequestVersionRef = useRef(0);
+
+  useEffect(() => {
+    let active = true;
+    const requestVersion = authRequestVersionRef.current;
+
+    fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+      credentials: "include",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Authentication required");
+        }
+
+        const data = await response.json();
+        if (active && requestVersion === authRequestVersionRef.current) {
+          sessionStorage.setItem("user", JSON.stringify(data.user));
+          setUser(data.user);
+        }
+      })
+      .catch(() => {
+        if (active && requestVersion === authRequestVersionRef.current) {
+          sessionStorage.removeItem("user");
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsAuthLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function login(email, password) {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
@@ -31,6 +63,7 @@ export function AuthProvider({ children }) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         email,
         password,
@@ -43,15 +76,23 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Login failed");
     }
 
+    authRequestVersionRef.current += 1;
     // Save session
-    sessionStorage.setItem("token", data.token);
     sessionStorage.setItem("user", JSON.stringify(data.user));
 
     // Update React state
-    setToken(data.token);
     setUser(data.user);
 
     return data;
+  }
+
+  function syncAuthenticatedUser(currentUser) {
+    if (!currentUser) {
+      return;
+    }
+
+    sessionStorage.setItem("user", JSON.stringify(currentUser));
+    setUser(currentUser);
   }
 
   async function register({ username, email, password, confirmPassword }) {
@@ -80,11 +121,20 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  function logout() {
-    sessionStorage.removeItem("token");
+  async function logout() {
+    authRequestVersionRef.current += 1;
+
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    }
+
     sessionStorage.removeItem("user");
 
-    setToken(null);
     setUser(null);
   }
 
@@ -92,8 +142,9 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!token,
+        isAuthLoading,
+        isAuthenticated: !!user,
+        syncAuthenticatedUser,
         login,
         register,
         logout,

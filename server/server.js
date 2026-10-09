@@ -1,7 +1,10 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
 
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
@@ -25,6 +28,7 @@ const corsOptions = {
   origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
 
 // Socket.IO
@@ -42,6 +46,7 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
 
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -117,12 +122,12 @@ io.on("connection", (socket) => {
 
   socket.on("joinProject", async (projectId) => {
     try {
-      const project = await db.project.findByPk(projectId, {
+      const project = await db.Project.findByPk(projectId, {
         include: [
           {
             model: db.User,
             as: "members",
-            attribute: ["id"],
+            attributes: ["id"],
           },
         ],
       });
@@ -149,7 +154,7 @@ io.on("connection", (socket) => {
         });
       }
 
-      const roomName = `project-$(projectId)`;
+      const roomName = `project-${projectId}`;
 
       socket.join(roomName);
 

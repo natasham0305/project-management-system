@@ -1,4 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  createBrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -14,6 +20,18 @@ import Users from "./pages/Users";
 import "./App.css";
 import Register from "./pages/Register";
 
+// const routes = createBrowserRouter(
+//   [
+//     {
+//       path:"/login",
+//       element:<Login />
+//     },
+//     {
+//       path:"/register",
+//       element:<Register/>
+//     },
+//   ]
+// );
 function App() {
   return (
     <BrowserRouter>
@@ -29,6 +47,12 @@ function App() {
 
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
+            {/* <Route path="/projects" element={<Projects />} children: { path=":id"  element={<ProjectDetails/>}} /> */}
+            {/* <Routes>
+              <Route path="/projects" element={<Projects />}>
+                <Route path=":id" element={<ProjectDetails />} />
+              </Route>
+            </Routes> */}
             <Route path="/projects/:id" element={<ProjectDetails />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/team" element={<Team />} />

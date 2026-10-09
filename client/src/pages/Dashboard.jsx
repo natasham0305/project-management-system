@@ -4,7 +4,7 @@ import { useAuth } from "../context/useAuth.js";
 import { fetchProjects, fetchTasks } from "../services/projectService.js";
 
 function Dashboard() {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState([]);
@@ -19,7 +19,7 @@ function Dashboard() {
         setError(null);
 
         // Fetch all projects
-        const projectsData = await fetchProjects(token);
+        const projectsData = await fetchProjects();
         setProjects(projectsData);
 
         // Fetch tasks for each project and aggregate counts
@@ -29,7 +29,7 @@ function Dashboard() {
 
         await Promise.all(
           projectsData.map(async (project) => {
-            const tasks = await fetchTasks(project.id, token);
+            const tasks = await fetchTasks(project.id);
             for (const task of tasks) {
               const s = (task.status || "").toLowerCase();
               if (s === "done" || s === "completed") done++;
@@ -48,10 +48,10 @@ function Dashboard() {
       }
     }
 
-    if (token) {
+    if (user) {
       loadDashboardData();
     }
-  }, [token]);
+  }, [user?.id]);
 
   const totalTasks = taskStats.todo + taskStats.inProgress + taskStats.done;
 

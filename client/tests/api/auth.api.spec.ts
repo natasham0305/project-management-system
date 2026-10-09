@@ -108,7 +108,7 @@ test.describe("Auth API", () => {
   });
 
   test.describe("POST /api/auth/login", () => {
-    test("should successfully log in an existing user and return a JWT", async ({
+    test("should successfully log in an existing user with an HttpOnly cookie", async ({
       request,
     }) => {
       const response = await request.post("/api/auth/login", {
@@ -121,9 +121,30 @@ test.describe("Auth API", () => {
       expect(response.status()).toBe(200);
       const body = await response.json();
       expect(body.message).toBe("Login successful");
-      expect(body).toHaveProperty("token");
-      expect(typeof body.token).toBe("string");
       expect(body.user.email).toBe(TEST_EMAIL_ADMIN?.toLowerCase());
+
+      const setCookie = response.headers()["set-cookie"];
+      expect(setCookie).toContain("project_management_token=");
+      expect(setCookie).toContain("HttpOnly");
+    });
+
+    test("should return the cookie-authenticated current user", async ({
+      request,
+    }) => {
+      const loginResponse = await request.post("/api/auth/login", {
+        data: {
+          email: TEST_EMAIL_ADMIN,
+          password: TEST_PASSWORD,
+        },
+      });
+
+      expect(loginResponse.status()).toBe(200);
+
+      const response = await request.get("/api/auth/me");
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+      expect(body.user.email).toBe(TEST_EMAIL_ADMIN?.toLowerCase());
+      expect(body.user.role).toBe("admin");
     });
 
     test("should reject login when email is missing", async ({ request }) => {

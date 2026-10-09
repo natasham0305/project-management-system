@@ -1,18 +1,41 @@
 const jwt = require("jsonwebtoken");
+const cookie = require("cookie");
+const { User } = require("../models");
 
-function socketAuth(socket, next) {
+const parseCookieHeader =
+  cookie.parse || cookie.parseCookie ||
+  (typeof cookie === "function" ? cookie : null);
+
+async function socketAuth(socket, next) {
   try {
-    const token = socket.handshake.auth?.token;
+    const cookieHeader = socket.handshake.headers.cookie;
+
+    if (!cookieHeader) {
+      return next(new Error("Authentication required"));
+    }
+
+    if (typeof parseCookieHeader !== "function") {
+      return next(new Error("Cookie parser is unavailable"));
+    }
+
+    const cookies = parseCookieHeader(cookieHeader);
+    const token = cookies.project_management_token;
 
     if (!token) {
       return next(new Error("Authentication required"));
     }
 
-    const decode = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id, {
+      attributes: ["id", "username", "email", "role"],
+    });
 
-    socket.user = decode;
+    if (!user) {
+      return next(new Error("User no longer exists"));
+    }
 
-    next();
+    socket.user = user.get({ plain: true });
+    return next();
   } catch (error) {
     console.error("Socket authentication failed:", error.message);
 
@@ -20,4 +43,4 @@ function socketAuth(socket, next) {
   }
 }
 
-module.export = socketAuth;
+module.exports = socketAuth;

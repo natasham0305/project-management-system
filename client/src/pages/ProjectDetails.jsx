@@ -13,13 +13,14 @@ import {
   sendProjectMessage,
   fetchProjectMessages,
   deleteProjectMessage,
+  fetchProjectAttachment,
 } from "../services/projectService";
 
 import CreateTask from "../components/CreateTask";
 import { useAuth } from "../context/useAuth";
 
 function ProjectDetails() {
-  const { token, user } = useAuth();
+  const { user, syncAuthenticatedUser } = useAuth();
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,6 +61,7 @@ function ProjectDetails() {
   const [unreadCount, setUnreadCount] = useState(0);
   const chatOpenRef = useRef(chatOpen);
   const receivedMessageIdsRef = useRef(new Set());
+  const authRecoveryStartedRef = useRef(false);
 
   const isAdmin = user?.role === "admin";
   const isManager = user?.role === "manager";
@@ -92,16 +94,9 @@ function ProjectDetails() {
       return;
     }
 
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight;
-
-    const isNearBottom = distanceFromBottom < 100;
-
-    if (isNearBottom) {
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight;
-      });
-    }
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
   }, [messages, chatOpen]);
 
   // useEffect(() => {
@@ -131,33 +126,12 @@ function ProjectDetails() {
   // }, [chatOpen]);
 
   useEffect(() => {
-    if (!id || !token) {
-      return;
-    }
-
-    socket.auth = {
-      token,
-    };
-
-    socket.connect();
-
-    const handleConnect = () => {
-      socket.emit("joinProject", id);
-    };
-
-    socket.on("connect", handleConnect);
-    return () => {
-      socket.off("connect", handleConnect);
-      socket.disconnect();
-    };
-  }, [id, token]);
-
-  useEffect(() => {
     if (!id) {
       return;
     }
 
     function handleNewMessage(message) {
+      console.log("🔥 SOCKET MESSAGE RECEIVED:", message);
       // Prevent processing the same socket message more than once
       if (receivedMessageIdsRef.current.has(message.id)) {
         return;
@@ -182,9 +156,48 @@ function ProjectDetails() {
       });
     }
 
+    const handleConnect = () => {
+      console.log("🔥 CLIENT SOCKET CONNECTED:", socket.id);
+      socket.emit("joinProject", id);
+    };
+    const handleJoinProjectError = (error) => {
+      console.error("Failed to join project chat:", error.message);
+      setMessagesError(error.message || "Unable to join project chat");
+    };
+    const handleConnectError = (error) => {
+      console.error("🔥 CLIENT SOCKET ERROR:", error.message);
+
+      if (
+        error.message === "Invalid or expired token" &&
+        !authRecoveryStartedRef.current
+      ) {
+        authRecoveryStartedRef.current = true;
+
+        fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+          method: "POST",
+          credentials: "include",
+        }).finally(() => {
+          socket.disconnect();
+          navigate("/login", { replace: true });
+        });
+      }
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("connect_error", handleConnectError);
+    socket.on("joinProjectError", handleJoinProjectError);
     socket.on("newProjectMessage", handleNewMessage);
 
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.connect();
+    }
+
     return () => {
+      socket.off("connect", handleConnect);
+      socket.off("connect_error", handleConnectError);
+      socket.off("joinProjectError", handleJoinProjectError);
       socket.off("newProjectMessage", handleNewMessage);
     };
   }, [id]);
@@ -206,7 +219,7 @@ function ProjectDetails() {
   }, [chatOpen]);
 
   useEffect(() => {
-    if (!token) {
+    if (!id) {
       return;
     }
 
@@ -218,7 +231,7 @@ function ProjectDetails() {
       setError("");
       setTasksError("");
 
-      const projectPromise = getProjectById(id, token)
+      const projectPromise = getProjectById(id)
         .then((projectData) => {
           setProject(projectData);
         })
@@ -232,11 +245,7 @@ function ProjectDetails() {
 
       const handleOpenAttachment = async (attachment) => {
         try {
-          const blob = await fetchProjectAttachment(
-            project.id,
-            attachment.id,
-            token,
-          );
+          const blob = await fetchProjectAttachment(project.id, attachment.id);
 
           const fileUrl = URL.createObjectURL(blob);
 
@@ -260,7 +269,7 @@ function ProjectDetails() {
       //   setLoading(false);
       // }
 
-      const membersPromise = fetchProjectMembers(id, token)
+      const membersPromise = fetchProjectMembers(id)
         .then((memberData) => {
           setMembers(memberData);
         })
@@ -280,7 +289,7 @@ function ProjectDetails() {
       //   setMembersLoading(false);
       // }
 
-      const tasksPromise = fetchTasks(id, token)
+      const tasksPromise = fetchTasks(id)
         .then((taskData) => {
           setTasks(taskData);
         })
@@ -303,7 +312,7 @@ function ProjectDetails() {
 
       const usersPromise =
         isAdmin || isManager
-          ? fetchUsers(token)
+          ? fetchUsers()
               .then((usersData) => {
                 setAllUsers(usersData);
               })
@@ -331,10 +340,10 @@ function ProjectDetails() {
     }
 
     loadProject();
-  }, [id, token, isAdmin, isManager]);
+  }, [id, isAdmin, isManager]);
 
   useEffect(() => {
-    if (!token || !id || !chatOpen) {
+    if (!id || !chatOpen) {
       return;
     }
 
@@ -343,11 +352,25 @@ function ProjectDetails() {
       setMessagesError("");
 
       try {
-        const messageData = await fetchProjectMessages(id, token);
+        const messageData = await fetchProjectMessages(id);
         messageData.forEach((message) => {
           receivedMessageIdsRef.current.add(message.id);
         });
-        setMessages(messageData);
+        setMessages((currentMessages) => {
+          const messagesById = new Map(
+            currentMessages.map((message) => [message.id, message]),
+          );
+
+          messageData.forEach((message) => {
+            messagesById.set(message.id, message);
+          });
+
+          return [...messagesById.values()].sort(
+            (firstMessage, secondMessage) =>
+              new Date(firstMessage.created_at) -
+              new Date(secondMessage.created_at),
+          );
+        });
       } catch (error) {
         console.error("Failed to load project messages:", error);
         setMessagesError(error.message || "Failed to load project messages");
@@ -357,7 +380,7 @@ function ProjectDetails() {
     }
 
     loadMessages();
-  }, [id, token, chatOpen]);
+  }, [id, chatOpen]);
 
   function handleChatScroll() {
     const container = chatMessagesRef.current;
@@ -394,7 +417,7 @@ function ProjectDetails() {
 
   async function handleDeleteTask(taskId) {
     try {
-      await deleteTask(taskId, token);
+      await deleteTask(taskId);
 
       setTasks((currentTasks) =>
         currentTasks.filter((task) => task.id !== taskId),
@@ -406,17 +429,13 @@ function ProjectDetails() {
 
   async function handleStatusChange(task, newStatus) {
     try {
-      const updatedTask = await updateTask(
-        task.id,
-        {
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          status: newStatus,
-          assigned_to: task.assigned_to,
-        },
-        token,
-      );
+      const updatedTask = await updateTask(task.id, {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: newStatus,
+        assigned_to: task.assigned_to,
+      });
 
       setTasks((currentTasks) =>
         currentTasks.map((currentTask) =>
@@ -434,8 +453,8 @@ function ProjectDetails() {
     }
 
     try {
-      await addProjectMember(id, selectedUserId, token);
-      const updatedMember = await fetchProjectMembers(id, token);
+      await addProjectMember(id, selectedUserId);
+      const updatedMember = await fetchProjectMembers(id);
       setMembers(updatedMember);
       setSelectedUserId("");
       setShowMemberForm(false);
@@ -446,7 +465,7 @@ function ProjectDetails() {
 
   async function handleRemoveMember(userId) {
     try {
-      await removeProjectMember(id, userId, token);
+      await removeProjectMember(id, userId);
       setMembers((currentMembers) =>
         currentMembers.filter((member) => member.id !== userId),
       );
@@ -468,7 +487,28 @@ function ProjectDetails() {
     setMessagesError("");
 
     try {
-      await sendProjectMessage(id, trimmedMessage, selectedFile, token);
+      const sentMessage = await sendProjectMessage(
+        id,
+        trimmedMessage,
+        selectedFile,
+      );
+
+      if (
+        sentMessage.sender &&
+        (Number(sentMessage.sender_id) !== Number(user?.id) ||
+          sentMessage.sender.role !== user?.role)
+      ) {
+        syncAuthenticatedUser({ ...user, ...sentMessage.sender });
+      }
+
+      receivedMessageIdsRef.current.add(sentMessage.id);
+      setMessages((currentMessages) => {
+        if (currentMessages.some((message) => message.id === sentMessage.id)) {
+          return currentMessages;
+        }
+
+        return [...currentMessages, sentMessage];
+      });
 
       setNewMessage("");
       setSelectedFile(null);
@@ -485,7 +525,7 @@ function ProjectDetails() {
   }
   async function handleDeleteMessage(messageId) {
     try {
-      await deleteProjectMessage(id, messageId, token);
+      await deleteProjectMessage(id, messageId);
 
       setMessages((currentMessages) =>
         currentMessages.filter((message) => message.id !== messageId),
@@ -1018,8 +1058,8 @@ function ProjectDetails() {
                 </div>
               ) : (
                 messages.map((message) => {
-                  const isOwnMessage =
-                    Number(message.sender_id) === Number(user?.id);
+                  const senderId = message.sender_id ?? message.sender?.id;
+                  const isOwnMessage = Number(senderId) === Number(user?.id);
 
                   const senderName = message.sender?.username || "Unknown user";
 

@@ -5,9 +5,10 @@ import CreateProject from "../components/CreateProject";
 
 import { deleteProject, fetchProjects } from "../services/projectService";
 import { useAuth } from "../context/useAuth";
+import { Outlet } from "react-router-dom";
 
 function Projects() {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [editingProject, setEditingProject] = useState(null);
 
@@ -17,7 +18,7 @@ function Projects() {
   useEffect(() => {
     async function loadProjects() {
       try {
-        const data = await fetchProjects(token);
+        const data = await fetchProjects();
 
         setProjects(data);
       } catch {
@@ -28,7 +29,7 @@ function Projects() {
     }
 
     loadProjects();
-  }, [token]);
+  }, [user?.id]);
 
   function handleProjectSaved(project) {
     setProjects((currentProjects) => {
@@ -40,7 +41,7 @@ function Projects() {
         );
       }
 
-      return [...currentProjects, project];
+      return [project, ...currentProjects];
     });
 
     setEditingProject(null);
@@ -56,13 +57,14 @@ function Projects() {
     }
 
     try {
-      await deleteProject(id, token);
+      await deleteProject(id);
 
       setProjects((currentProjects) =>
         currentProjects.filter((project) => project.id !== id),
       );
     } catch (error) {
       console.error(error);
+      setError(error.message || "Failed to delete project");
     }
   }
 
@@ -166,6 +168,7 @@ function Projects() {
               <ProjectCard
                 key={project.id}
                 project={project}
+                canDelete={user?.role === "admin"}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
               />

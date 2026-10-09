@@ -1,7 +1,7 @@
 import { APIRequestContext } from "@playwright/test";
 import fs from "fs";
 
-// Helper to log in a user and return the JWT token and user info
+// Helper to log in a user and return the auth cookie and user info
 export async function loginAndGetToken(
   request: APIRequestContext,
   email: string = "admin@example.com",
@@ -17,24 +17,33 @@ export async function loginAndGetToken(
   }
 
   const body = await response.json();
-  return { token: body.token, user: body.user };
+  const setCookie = response.headers()["set-cookie"];
+  const cookie = setCookie?.split(";")[0];
+
+  return { token: cookie, user: body.user };
 }
 
-// Read token and user info directly from the saved storageState JSON file
-// (avoids an extra HTTP login call when storage states are already available)
+// Read the auth cookie and user info from the saved storage state.
 export function getAuthFromState(role: "admin" | "manager" | "member") {
   const filePath = `tests/auth/${role}.json`;
   const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
-  const token = data.sessionStorage.token;
+  const authCookie = data.cookies
+    .filter((cookie: { name: string }) =>
+      ["project_management_token", "token"].includes(cookie.name),
+    )
+    .map((cookie: { name: string; value: string }) =>
+      `${cookie.name}=${cookie.value}`,
+    )
+    .join("; ");
   const user = JSON.parse(data.sessionStorage.user);
 
-  return { token, user };
+  return { token: authCookie, user };
 }
 
-// Helper to format the Bearer token header
-export function authHeader(token: string) {
+// Helper to format the cookie header
+export function authHeader(cookie: string) {
   return {
-    Authorization: `Bearer ${token}`,
+    Cookie: cookie,
   };
 }

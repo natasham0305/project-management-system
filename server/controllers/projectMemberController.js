@@ -52,7 +52,10 @@ async function addProjectMember(req, res) {
       });
     }
 
-    if (req.user.role === "manager" && project.manager_id !== req.user.id) {
+    if (
+      req.user.role === "manager" &&
+      Number(project.manager_id) !== Number(req.user.id)
+    ) {
       return res.status(403).json({
         message: "You can only manage members of your own projects",
       });
@@ -92,7 +95,10 @@ async function removeProjectMember(req, res) {
       });
     }
 
-    if (req.user.role === "manager" && project.manager_id !== req.user.id) {
+    if (
+      req.user.role === "manager" &&
+      Number(project.manager_id) !== Number(req.user.id)
+    ) {
       return res.status(403).json({
         message: "You can only manage members of your own projects",
       });

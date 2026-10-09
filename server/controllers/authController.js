@@ -148,9 +148,16 @@ async function login(req, res) {
       },
     );
 
+    res.cookie("project_management_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 60 * 60 * 1000,
+      path: "/",
+    });
+
     return res.status(200).json({
       message: "Login successful",
-      token,
       user: {
         id: user.id,
         username: user.username,
@@ -167,7 +174,29 @@ async function login(req, res) {
   }
 }
 
+function logout(req, res) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  };
+
+  res.clearCookie("project_management_token", cookieOptions);
+  res.clearCookie("token", cookieOptions);
+
+  return res.status(200).json({
+    message: "Logout successful",
+  });
+}
+
+function getCurrentUser(req, res) {
+  return res.status(200).json({ user: req.user });
+}
+
 module.exports = {
   register,
   login,
+  logout,
+  getCurrentUser,
 };

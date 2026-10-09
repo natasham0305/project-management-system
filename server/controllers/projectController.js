@@ -20,7 +20,12 @@ async function getProjectById(req, res) {
 
 async function getProjects(req, res) {
   try {
-    const projects = await Project.findAll();
+    const projects = await Project.findAll({
+      order: [
+        ["createdAt", "DESC"],
+        ["id", "DESC"],
+      ],
+    });
     res.status(200).json(projects);
   } catch (error) {
     console.error("Error fetching projects:", error);
